@@ -1,0 +1,126 @@
+---
+title: "Medical-Cost-Personel"
+output: html_document
+date: "2023-01-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+# Loading the libraries required for this project
+```{r }
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(corrplot)
+library(cowplot)
+
+```
+
+
+
+
+
+
+
+# Load the data into Rstudio
+```{r}
+df <- read_csv("Dataset/insurance.csv")
+head(df)
+```
+
+# Check features in the dataset
+
+```{r }
+str(df)
+```
+# EXPLORATORY DATA ANALYSIS (EDA)
+```{r}
+summary(df)
+```
+As we see sex, smoker, and region are categorical features while 
+age, bmi, children, and charges are numerical features.
+
+## Check missing value.
+```{r}
+colSums(is.na(df))
+
+```
+As we saw there is no missing data in our dataset.
+
+## Analysis on categorical features.
+categorical feature consist of sex, smoker, and region.
+
+
+
+### analysis on sex
+```{r}
+# count plot
+# get freq/count
+freq_table <- table(df$sex)
+fr <- as.data.frame.table(freq_table)
+# plot freq
+g <- ggplot(fr, aes(x=Var1, y=Freq)) + 
+  geom_bar(stat="identity", fill="tomato2") + 
+  geom_text(aes(label=Freq, vjust=-0.2), alpha=0.7) + 
+  ggtitle("sex Distribution", subtitle = "frequency/count of gender type") + 
+  labs(x="sex", y="count")
+# scatter plot
+gg <- ggplot(df, aes(x=sex, y=charges)) + 
+  geom_jitter(aes(color=sex), alpha=0.7) + 
+  ggtitle("sex vs charges")
+p <- plot_grid(g, gg)
+title <- ggdraw() + draw_label("Analysis on sex", fontface = 'bold')
+plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
+```
+Female vs male count/distribution balanced with slightly more male. There are no pattern on charges.
+
+
+### analysis on smoker
+```{r}
+# count plot
+# get freq/count
+freq_table <- table(df$smoker)
+fr <- as.data.frame.table(freq_table)
+# plot freq
+g <- ggplot(fr, aes(x="", y=Freq, fill = factor(Var1))) + 
+  geom_bar(width=1, stat="identity") + 
+  geom_text(aes(label = paste(round(Freq / sum(Freq) * 100, 1), "%")),
+            position = position_stack(vjust = 0.5)) +
+  ggtitle("smoker Distribution", subtitle = "frequency/count of smoking customer") + 
+  labs(x="smoker", y="count") + 
+  coord_polar(theta = "y", start=1)  + 
+  theme(legend.position="bottom") + 
+  guides(fill=guide_legend(title="")) + 
+  scale_fill_manual(values = c("#58508d", "#bc5090", "#ff6361", "#ffa600"))
+# scatter plot
+gg <- ggplot(df, aes(x=smoker, y=charges)) + 
+  geom_jitter(color="lightcoral", alpha=0.7) + 
+  ggtitle("smoker vs charges") + 
+  theme(legend.position="None")
+p <- plot_grid(g, gg)
+title <- ggdraw() + draw_label("Analysis on smoker", fontface = 'bold')
+plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
+```
+There are less smoker. Customer who smoke show higher charges than those who don't.
+
+### analysis on region
+
+
+
+
+
+
+
+
+
+
