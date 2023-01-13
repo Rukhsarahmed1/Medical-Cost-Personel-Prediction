@@ -23,6 +23,7 @@ library(dplyr)
 library(readr)
 library(corrplot)
 library(cowplot)
+library(viridis)
 
 ```
 
@@ -115,7 +116,136 @@ There are less smoker. Customer who smoke show higher charges than those who don
 
 ### analysis on region
 
+```{r}
+# count plot
+# get freq/count
+freq_table <- table(df$region)
+fr <- as.data.frame.table(freq_table)
+# plot freq
+g <- ggplot(fr, aes(x="", y=Freq, fill = factor(Var1))) + 
+  geom_bar(width=1, stat="identity") + 
+  geom_text(aes(label = paste(round(Freq / sum(Freq) * 100, 1), "%")),
+            position = position_stack(vjust = 0.5)) +
+  ggtitle("region Distribution", subtitle = "region of customer (US)") + 
+  labs(x="region", y="count") +
+  coord_polar(theta = "y", start=1)  + 
+  theme(legend.position="bottom") + 
+  guides(fill=guide_legend(title="")) + 
+  scale_fill_manual(values = c("#58508d", "#bc5090", "#ff6361", "#ffa600"))
+# scatter plot
+gg <- ggplot(df, aes(x=region, y=charges)) + 
+  geom_jitter(color="DarkOliveGreen", alpha=0.7) + 
+  ggtitle("region vs charges") +
+  theme(axis.text.x = element_text(angle=90), legend.position = "None") 
+p <- plot_grid(g, gg)
+title <- ggdraw() + draw_label("Analysis on region", fontface = 'bold')
+plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
 
+```
+
+There are 4 region, with 'southeast' has slightly more count than the other 3 that was pretty balanced to each other. There are no pattern on charges.
+
+
+
+## Distribution analysis on numerical features.
+
+Numerical features consist of age, bmi, children, and charges.
+
+### distribution on age
+
+```{r}
+g <- ggplot(df, aes(age)) + 
+  scale_fill_brewer(palette = "Spectral") + 
+  geom_histogram(fill="thistle", binwidth = 1, col="black", size=.7) +
+  ggtitle("age Distribution", subtitle = "distribution of age vs count")
+gg <- ggplot(df, aes(x=age, y=charges)) + 
+  geom_point(colour="RosyBrown", alpha=0.3) + 
+  # geom_jitter(aes(color="re"), alpha=0.3) + 
+  ggtitle("age vs charges") + 
+  theme(legend.position="None")
+p <- plot_grid(g, gg)
+title <- ggdraw() + draw_label("Analysis on age", fontface = 'bold')
+plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
+```
+
+Ages have balanced distribution about 25-ish on age 20-64 with were more count on age 18 and 19. Age seems correspond linearly to charges. however, we can observe 3 cluster of charges, 0-20000, 20000ish, and 40000ish. 
+
+
+
+### distribution on bmi
+```{r}
+g <- ggplot(df, aes(bmi)) + 
+  geom_density(fill="#00798c", color="black", alpha=0.7) + 
+  ggtitle("bmi Distribution", subtitle = "distribution of bmi vs count")
+gg <- ggplot(df, aes(x=bmi, y=charges)) + 
+  # geom_point(aes(col=bmi))
+  geom_jitter(colour="#2e4057", alpha=0.3) + 
+  ggtitle("bmi vs charges") + 
+  theme(legend.position="None")
+p <- plot_grid(g, gg)
+title <- ggdraw() + draw_label("Analysis on bmi", fontface = 'bold')
+plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
+```
+
+bmi distributed normally with average of 30.66. There are slightly increase of charges as the bmi increase.
+
+
+### distribution on children count.
+
+```{r}
+g <- ggplot(df, aes(children)) + 
+  scale_fill_brewer(palette = "Spectral") + 
+  geom_histogram(fill="YellowGreen", binwidth = 1, col="black", size=.7) +
+  ggtitle("children Distribution", subtitle = "distribution of number of children(dependents) covered")
+gg <- ggplot(df, aes(x=children, y=charges)) + 
+  # geom_point(aes(col=bmi))
+  geom_jitter(colour = "lightseagreen", alpha=0.3) + 
+  ggtitle("children vs charges") + 
+  theme(legend.position="None")
+p <- plot_grid(g, gg)
+title <- ggdraw() + draw_label("Analysis on children", fontface = 'bold')
+plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
+```
+
+Most customer has no children, the more children count the less the counts. There are no pattern shown on charges.
+
+## Encoding.
+
+```{r}
+encode <- function(x, order = unique(x)){
+  x <- as.numeric(factor(x, levels = order, exclude = NULL))
+  x
+}
+encoded_df <- df
+encoded_df[["sex"]] <- encode(df[["sex"]])
+encoded_df[["smoker"]] <- encode(df[["smoker"]])
+encoded_df[["region"]] <- encode(df[["region"]])
+head(encoded_df)
+```
+```{r}
+str(encoded_df)
+```
+## correlation matrix
+
+
+```{r}
+corr <- cor(encoded_df)
+g <- corrplot(corr, type="lower", tl.col = "black") 
+```
+
+
+```{r}
+gg <- heatmap(x=corr, col = magma(10), symm=T)
+```
+
+
+As we expected, smoker has higher correlation to charges then other, there are also slight correlation to age and bmi.
+
+
+
+# MODEL BUILDING
+
+Spilt dataset to train and test with ratio 7:3.
 
 
 
