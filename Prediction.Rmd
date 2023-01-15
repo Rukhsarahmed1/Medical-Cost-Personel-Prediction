@@ -279,7 +279,6 @@ dim(test_data)
 
 ### Linear Regression Model
 ```{r}
-
 lr <- lm(charges ~ age + sex + bmi + children + smoker + region, data=train_data)
 print(lr)
 # Predict on test data
@@ -358,28 +357,20 @@ print(paste("Accuracy of the Decision Tree model is:", accuracy2))
 
 ### Rnadom Forest
 ```{r}
+# build the Random forest model
 random_forest_model <- randomForest(as.factor(smoker) ~ ., data = train_data, ntree = 500)
 
-
-
-
-
-
-
-
+# make predictions on the test data
 random_forest_predictions <- predict(random_forest_model, newdata = test_data, type = "class")
 
 
+# Evalute Performance
 confusion_matrix <- table(predicted = random_forest_predictions, actual = test_data$smoker)
 confusion_matrix
 
 
-
-
-
 # Summary of the model
 summary(random_forest_model)
-
 
 
 
@@ -389,6 +380,7 @@ summary(random_forest_model)
 accuracy1 <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
 print(paste("Accuracy of the Random Forest Model is:", accuracy1))
 ```
+### Compare the accuracy of three model
 ```{r}
 cat("Accuracy of Linear Model:", (R_squared)*100, "\n")
 cat("Accuracy of Decision Tree Model:", (accuracy2)*100, "\n")
