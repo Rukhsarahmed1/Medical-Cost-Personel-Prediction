@@ -320,7 +320,7 @@ dum <- data.frame(age = 24,
                   children = 0,
                   smoker = 1, 
                   region = 3)
-print(paste0("Charges Prediction for dum: ", round(predict(model, dum), 2)))
+print(paste0("Charges Prediction for dum: ", round(predict(lr, dum), 2)))
 ```
 
 ### Decision Tree
@@ -339,8 +339,12 @@ levels(predictions) <- levels(test_data$smoker)
 
 
 # evaluate the model performance
-confusionMatrix(predictions, test_data$smoker)
-
+# Evalute Performance
+confusion_matrix <- table(predicted = predictions, actual = test_data$smoker)
+confusion_matrix
+summary(dr)
+accuracy2 <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy of the Decision Tree model is:", accuracy2))
 
 ```
 # Print accuracy for Decision tree model
