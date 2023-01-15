@@ -19,12 +19,14 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r }
 library(ggplot2)
 library(tidyverse)
-library(dplyr)
 library(readr)
 library(corrplot)
 library(cowplot)
 library(viridis)
-library(psych)
+library(caret)
+library(randomForest)
+library(rpart)
+
 
 ```
 
@@ -45,12 +47,15 @@ head(df)
 ```{r }
 str(df)
 ```
+sex, smoker, and region are categorical features.
+age, bmi, children, and charges are numerical features
+
+
+
 # EXPLORATORY DATA ANALYSIS (EDA)
 ```{r}
 summary(df)
 ```
-As we see sex, smoker, and region are categorical features while 
-age, bmi, children, and charges are numerical features.
 
 ## Check missing value.
 ```{r}
@@ -68,8 +73,8 @@ categorical feature consist of sex, smoker, and region.
 ```{r}
 # count plot
 # get freq/count
-freq_table <- table(df$sex)
-fr <- as.data.frame.table(freq_table)
+sex_table <- table(df$sex)
+fr <- as.data.frame.table(sex_table)
 # plot freq
 g <- ggplot(fr, aes(x=Var1, y=Freq)) + 
   geom_bar(stat="identity", fill="tomato2") + 
@@ -87,12 +92,13 @@ plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
 Female vs male count/distribution balanced with slightly more male. There are no pattern on charges.
 
 
+
 ### analysis on smoker
 ```{r}
 # count plot
 # get freq/count
-freq_table <- table(df$smoker)
-fr <- as.data.frame.table(freq_table)
+smoker_table <- table(df$smoker)
+fr <- as.data.frame.table(smoker_table)
 # plot freq
 g <- ggplot(fr, aes(x="", y=Freq, fill = factor(Var1))) + 
   geom_bar(width=1, stat="identity") + 
@@ -120,8 +126,8 @@ There are less smoker. Customer who smoke show higher charges than those who don
 ```{r}
 # count plot
 # get freq/count
-freq_table <- table(df$region)
-fr <- as.data.frame.table(freq_table)
+region_table <- table(df$region)
+fr <- as.data.frame.table(region_table)
 # plot freq
 g <- ggplot(fr, aes(x="", y=Freq, fill = factor(Var1))) + 
   geom_bar(width=1, stat="identity") + 
@@ -157,7 +163,7 @@ Numerical features consist of age, bmi, children, and charges.
 ```{r}
 g <- ggplot(df, aes(age)) + 
   scale_fill_brewer(palette = "Spectral") + 
-  geom_histogram(fill="thistle", binwidth = 1, col="black", size=.7) +
+  geom_histogram(fill="thistle", binwidth = 1, col="black", size=.8) +
   ggtitle("age Distribution", subtitle = "distribution of age vs count")
 gg <- ggplot(df, aes(x=age, y=charges)) + 
   geom_point(colour="RosyBrown", alpha=0.3) + 
@@ -188,7 +194,7 @@ title <- ggdraw() + draw_label("Analysis on bmi", fontface = 'bold')
 plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
 ```
 
-bmi distributed normally with average of 30.66. There are slightly increase of charges as the bmi increase.
+Bmi distributed normally with average of 30.66. There are slightly increase of charges as the bmi increase.
 
 
 ### distribution on children count.
@@ -259,30 +265,78 @@ test_df <- encoded_df[-train_idx, ]
 
 
 ```{r}
+# Next, set a seed for reproducibility
+set.seed(123)
+
+# Split the data into a training set and a test set with a 70-30 split
+split_index <- createDataPartition(encoded_df$charges, p = 0.7, list = FALSE)
+train_data <- encoded_df[split_index, ]
+test_data <- encoded_df[-split_index, ]
+
+# Check the dimensions of the training and test sets
+dim(train_data)
+dim(test_data)
+
+
+```
+### Linear Regression Model
+```{r}
+# Build a linear regression model on the training data
+model <- lm(charges ~ age + sex + bmi + smoker + region, data = train_data)
+# check summary of the model
+summary(model)
+
+# Predict on test data
+
+test_data$pred <- predict(model, newdata = test_data)
+
+
 
 ```
 
+###  create a scatter plot of the actual and predicted values.
 ```{r}
-lr <- lm(charges ~ age + sex + bmi + children + smoker + region, data=train_df)
-print(lr)
-# pred
-test_df$pred <- predict(lr, newdata = test_df)
-
+gg <- ggplot(test_data, aes(x=pred, y=charges)) + 
+  geom_point(color = "lightsalmon", alpha=0.8) + 
+  geom_abline(color = "darkslategray", size=1) + 
+  ggtitle("prediction vs real charges (Linear Regression")
+gg
 ```
+It's important to note that this graph can help you evaluate how well the model is performing by checking how closely the points are aligned to the line of perfect prediction. If the points are closely aligned to the line, the model is performing well. However, if the points are scattered away from the line, the model is not performing well and needs to be improved.
+
+
+
+
+
+### model demonstration with dummy data
 
 ```{r}
-dum <- data.frame(age = 20,
+dum <- data.frame(age = 24,
                   sex = 2, 
                   bmi = 30.1,
                   children = 0,
                   smoker = 1, 
                   region = 3)
-print(paste0("Charges Prediction for dum: ", round(predict(lr, dum), 2)))
+print(paste0("Charges Prediction for dum: ", round(predict(model, dum), 2)))
 ```
 
+### Decision Tree
 ```{r}
-summary(train_df)
+# build the decision tree model
+model <- rpart(smoker ~ age + sex + bmi + region, data = train_data, 
+               method = "class")
+
+# make predictions on the test data
+predictions <- predict(model, test_data, type = "class")
+
+# convert predictions and test data to factor and ensure they have the same levels
+predictions <- as.factor(predictions)
+test_data$smoker <- as.factor(test_data$smoker)
+levels(predictions) <- levels(test_data$smoker)
+
+
+# evaluate the model performance
+confusionMatrix(predictions, test_data$smoker)
+
+      
 ```
-
-
-
