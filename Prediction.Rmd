@@ -24,8 +24,9 @@ library(corrplot)
 library(cowplot)
 library(viridis)
 library(caret)
-library(randomForest)
 library(rpart)
+library(rpart.plot)
+library(randomForest)
 
 
 ```
@@ -89,7 +90,7 @@ p <- plot_grid(g, gg)
 title <- ggdraw() + draw_label("Analysis on sex", fontface = 'bold')
 plot_grid(title, p, ncol = 1, rel_heights = c(0.1,1))
 ```
-Female vs male count/distribution balanced with slightly more male. There are no pattern on charges.
+Female vs male count/distribution balanced with slightly more male. There is no pattern on charges.
 
 
 
@@ -256,12 +257,6 @@ As we expected, smoker has higher correlation to charges then other, there are a
 Spilt dataset to train and test with ratio 7:3.
 
 
-```{r}
-n_train <- round(0.7 * nrow(encoded_df))
-train_idx <- sample(1:nrow(encoded_df), n_train)
-train_df <- encoded_df[train_idx, ]
-test_df <- encoded_df[-train_idx, ]
-```
 
 
 ```{r}
@@ -279,20 +274,28 @@ dim(test_data)
 
 
 ```
+
+
+
 ### Linear Regression Model
 ```{r}
-# Build a linear regression model on the training data
-model <- lm(charges ~ age + sex + bmi + smoker + region, data = train_data)
-# check summary of the model
-summary(model)
 
+lr <- lm(charges ~ age + sex + bmi + children + smoker + region, data=train_data)
+print(lr)
 # Predict on test data
 
-test_data$pred <- predict(model, newdata = test_data)
+test_data$pred <- predict(lr, newdata = test_data)
 
-
+# Calculate R-squared
+R_squared <- summary(lr)$r.squared
+print(paste("R-squared:", R_squared))
 
 ```
+# Print the accutracy for the Linear Regression Model
+```{r}
+R_squared
+```
+
 
 ###  create a scatter plot of the actual and predicted values.
 ```{r}
@@ -323,11 +326,11 @@ print(paste0("Charges Prediction for dum: ", round(predict(model, dum), 2)))
 ### Decision Tree
 ```{r}
 # build the decision tree model
-model <- rpart(smoker ~ age + sex + bmi + region, data = train_data, 
+dr <- rpart(smoker ~ age + sex + bmi + region, data = train_data, 
                method = "class")
 
 # make predictions on the test data
-predictions <- predict(model, test_data, type = "class")
+predictions <- predict(dr, test_data, type = "class")
 
 # convert predictions and test data to factor and ensure they have the same levels
 predictions <- as.factor(predictions)
@@ -338,5 +341,59 @@ levels(predictions) <- levels(test_data$smoker)
 # evaluate the model performance
 confusionMatrix(predictions, test_data$smoker)
 
-      
+
 ```
+# Print accuracy for Decision tree model
+```{r}
+accuracy2 <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy of the Decision Tree model is:", accuracy2))
+```
+
+
+
+
+
+
+
+
+### Rnadom Forest
+```{r}
+random_forest_model <- randomForest(as.factor(smoker) ~ ., data = train_data, ntree = 500)
+
+
+
+
+
+
+
+
+random_forest_predictions <- predict(random_forest_model, newdata = test_data, type = "class")
+
+
+confusion_matrix <- table(predicted = random_forest_predictions, actual = test_data$smoker)
+confusion_matrix
+
+
+
+
+
+# Summary of the model
+summary(random_forest_model)
+
+
+
+
+```
+# Calculate the accuracy of the model
+```{r}
+accuracy1 <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy of the Random Forest Model is:", accuracy1))
+```
+```{r}
+cat("Accuracy of Linear Model:", (R_squared)*100, "\n")
+cat("Accuracy of Decision Tree Model:", (accuracy2)*100, "\n")
+cat("Accuracy of Random Forest   Model:", (accuracy1)*100, "\n")
+```
+
+
+
